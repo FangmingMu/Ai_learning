@@ -11,7 +11,7 @@ def read_root():
     return {"message": "Hello, World"}    # 返回字典,FastAPI自动将它转换成JSON格式的响应
 
 @app.get("/items/{item_id}")    # 注册另一个路由  处理对 "/items/{item_id}" 的GET请求
-def read_item(item_id: int, q: str | None = None): # item_id: int  路径参数   q: str | None = None  查询参数
+def read_item(item_id: int, q: str | None = None): # item_id: int  路径参数  类型提示  q: str | None = None  查询参数
     # 网址 http://127.0.0.1:8000/items/9   {item_id}直接送网址中获取的
     return {"item_id": item_id, "q": q}   # 返回一个字典，包含了从路径中捕获到的 item_id。
 
