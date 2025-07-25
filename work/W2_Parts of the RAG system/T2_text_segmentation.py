@@ -23,7 +23,7 @@ else:
         )
 
         split_docs = text_splitter.split_documents(docs) # 使用.split_documents() 分割documents列表  遍历每一页 并按规则进行切分
-        print(f"--- 分割完成！总共分割成了 {len(split_docs)} 个文本块。---")
+        print(f"--- 分割完成！总共分割成了 {len(split_docs)} 个文本块。---")  # 分割后是列表  每个都是Document 对象   包含.page_content 和 .metadata 属性
 
 
         for i, chunk in enumerate(split_docs):

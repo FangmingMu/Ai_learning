@@ -71,7 +71,7 @@ def main():
     )
     qa_chain = RetrievalQA.from_chain_type(
         retriever=retriever,
-        chain_type="stuff",   # "stuff" 是最简单直接的链类型，它会把所有检索到的文档内容“塞”进一个Prompt里   map_reduce   refine
+        chain_type="stuff",   # "stuff" 一次塞入所有文档   map_reduce 两步处理 先消化后汇总   refine  不断迭代答案  map_rerank 排名选最好
         llm=llm,
     )   #return_source_documents: True  返回结果中会包含原始文档  溯源
 

@@ -81,6 +81,7 @@ def chat(request: ChatRequest):
         answer = result["result"]   # 使用[]访问字典里的值  创建字典是{}
         print(f"生成答案: {answer}")
         return ChatResponse(answer=answer)   # 将答案封装在ChatResponse模型中返回   FastAPI会自动将其序列化为JSON
+
     except Exception as e:
         print(f"处理请求时发生错误: {e}")
         # 可以返回一个HTTP错误

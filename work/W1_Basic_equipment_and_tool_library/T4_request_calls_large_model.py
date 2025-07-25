@@ -38,7 +38,7 @@ if response.status_code == 200:
 
 dict = response.json()         #整理成字典
 
-#输出的内容是   {'choices': [{'message': {'role': 'assistant', 'content': '哎呀，你这么会
+#输出的内容是   {'choices': [{'message': {'role': 'assistant', 'content': '哎呀，你这么会......
 print(dict['choices'][0]['message']['content'])  #查看content内容   {}是字典（哈希）   []是列表  数组
 
 
