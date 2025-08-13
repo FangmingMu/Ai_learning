@@ -1,0 +1,67 @@
+Metadata-Version: 2.4
+Name: ragas
+Version: 0.3.1
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: numpy
+Requires-Dist: datasets
+Requires-Dist: tiktoken
+Requires-Dist: langchain
+Requires-Dist: langchain-core
+Requires-Dist: langchain-community
+Requires-Dist: langchain_openai
+Requires-Dist: nest-asyncio
+Requires-Dist: appdirs
+Requires-Dist: pydantic>=2
+Requires-Dist: openai>1
+Requires-Dist: diskcache>=5.6.3
+Provides-Extra: experimental
+Requires-Dist: ragas-experimental; extra == "experimental"
+Provides-Extra: all
+Requires-Dist: sentence-transformers; extra == "all"
+Requires-Dist: transformers; extra == "all"
+Requires-Dist: nltk; extra == "all"
+Requires-Dist: rouge_score; extra == "all"
+Requires-Dist: rapidfuzz; extra == "all"
+Requires-Dist: pandas; extra == "all"
+Requires-Dist: datacompy; extra == "all"
+Requires-Dist: llama_index; extra == "all"
+Requires-Dist: r2r; extra == "all"
+Requires-Dist: ragas-experimental; extra == "all"
+Provides-Extra: docs
+Requires-Dist: mkdocs>=1.6.1; extra == "docs"
+Requires-Dist: mkdocs-material; extra == "docs"
+Requires-Dist: mkdocs-material[imaging]; extra == "docs"
+Requires-Dist: mkdocstrings[python]; extra == "docs"
+Requires-Dist: mkdocs-glightbox; extra == "docs"
+Requires-Dist: mkdocs-autorefs; extra == "docs"
+Requires-Dist: mkdocs-gen-files; extra == "docs"
+Requires-Dist: mkdocs-literate-nav; extra == "docs"
+Requires-Dist: mkdocs-section-index; extra == "docs"
+Requires-Dist: mkdocs-git-committers-plugin-2; extra == "docs"
+Requires-Dist: mkdocs-git-revision-date-localized-plugin; extra == "docs"
+Provides-Extra: dev
+Requires-Dist: rich; extra == "dev"
+Requires-Dist: ruff; extra == "dev"
+Requires-Dist: black[jupyter]; extra == "dev"
+Requires-Dist: pyright; extra == "dev"
+Requires-Dist: llama_index; extra == "dev"
+Requires-Dist: notebook; extra == "dev"
+Requires-Dist: sphinx-autobuild; extra == "dev"
+Requires-Dist: sentence-transformers; extra == "dev"
+Requires-Dist: transformers; extra == "dev"
+Requires-Dist: fastembed; extra == "dev"
+Requires-Dist: graphene; extra == "dev"
+Requires-Dist: rouge_score; extra == "dev"
+Requires-Dist: nltk; extra == "dev"
+Requires-Dist: rapidfuzz; extra == "dev"
+Requires-Dist: pandas; extra == "dev"
+Requires-Dist: datacompy; extra == "dev"
+Requires-Dist: haystack-ai; extra == "dev"
+Requires-Dist: sacrebleu; extra == "dev"
+Requires-Dist: r2r; extra == "dev"
+Requires-Dist: pytest; extra == "dev"
+Requires-Dist: pytest-xdist[psutil]; extra == "dev"
+Requires-Dist: pytest-asyncio; extra == "dev"
+Requires-Dist: nbmake; extra == "dev"
+Provides-Extra: test
