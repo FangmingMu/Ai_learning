@@ -1,19 +1,11 @@
 import json
 from langchain_community.document_loaders import PyPDFLoader
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnablePassthrough
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
 from langchain_community.embeddings import DashScopeEmbeddings
 import os
 from langchain_openai import ChatOpenAI
 from langchain.chains import RetrievalQA
-from openai import embeddings, models
-from pydantic import BaseModel
-import asyncio # 导入异步I/O库，用于处理异步生成器
-from fastapi.responses import StreamingResponse
-from sympy import false
 
 PDFNAME = "ARES RAG Evaluation.pdf"
 question_name = "golden_dataset.jsonl"
@@ -39,7 +31,7 @@ def create_answer_jsonl(pdf_path, DBPATH):
         docs = loader.load()
         print("成功加载文档")
         splitter = RecursiveCharacterTextSplitter(
-            chunk_size = 512,
+            chunk_size = 1024,
             chunk_overlap=50,
             length_function=len,
             is_separator_regex=False
@@ -63,7 +55,7 @@ def create_answer_jsonl(pdf_path, DBPATH):
 
     retrieval = vector_db.as_retriever()
     llm = ChatOpenAI(
-            model_name = "qwen-turbo",
+            model_name = "qwen-plus-2025-04-28",
             api_key=os.getenv("DASHSCOPE_API_KEY"),
             base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
             extra_body={"enable_thinking": False},

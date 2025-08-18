@@ -27,9 +27,18 @@
 
 这是优化的第一步，也是最基础的一步。垃圾分块，神仙难救。
 
-*   [ ] **2.1. 学习语义分割策略:**
+* [ ] **2.1. 学习语义分割策略:**
     *   深入研究 `RecursiveCharacterTextSplitter` 的工作原理，理解它是如何利用 `["\n\n", "\n", " ", ""]` 等分隔符来尝试保留语义块的。
     *   **实践任务:** 调整 `chunk_size` 和 `chunk_overlap` 参数，使用 `R1` 的评估框架，测试不同参数对检索性能（特别是`Context Recall`）的影响，并记录最佳参数组合。
+
+    chunk_overlap=50   
+        chunk_size=256  {'faithfulness': 0.6301, 'answer_relevancy': 0.4396, 'context_recall': 0.3333, 'context_precision': 0.4083}
+        chunk_size=512  {'faithfulness': 0.7690, 'answer_relevancy': 0.5268, 'context_recall': 0.5750, 'context_precision': 0.6486}
+        chunk_size=1024 {'faithfulness': 0.8542, 'answer_relevancy': 0.6490, 'context_recall': 0.7750, 'context_precision': 0.6389}
+    chunk_overlap=100
+        chunk_size=256  {'faithfulness': 0.7908, 'answer_relevancy': 0.4140, 'context_recall': 0.2667, 'context_precision': 0.3750}
+        chunk_size=512  {'faithfulness': 0.6679, 'answer_relevancy': 0.6318, 'context_recall': 0.5167, 'context_precision': 0.5458}
+        chunk_size=1024 {'faithfulness': 0.7498, 'answer_relevancy': 0.5768, 'context_recall': 0.6250, 'context_precision': 0.6347}
 
 *   [ ] **2.2. 探索特定格式的分割器:**
     *   **学习任务:** 阅读 LangChain 文档，学习 `MarkdownHeaderTextSplitter` (用于Markdown文件) 和 `PythonCodeTextSplitter` (用于代码文件)。
@@ -42,6 +51,8 @@
 *   [ ] **2.3. 实现查询扩展 (Query Expansion):**
     *   **学习思想:** 对于一个模糊的问题，如“RAG有什么缺点？”，我们可以让LLM生成几个更具体的子问题，如“RAG的幻觉问题是什么？”、“RAG的知识时效性如何？”、“RAG的检索成本高吗？”。
     *   **实践任务:** 编写一个Chain，接收用户原始问题，调用LLM生成3-5个相关的子问题。然后，将原始问题和所有子问题**一起**发送给检索器进行检索。使用`R1`评估，对比该方法是否提升了`Context Recall`。
+    baseline chunk_size=1024,chunk_overlap=50  {'faithfulness': 0.7871, 'answer_relevancy': 0.6463, 'context_recall': 0.7250, 'context_precision': 0.5917}
+    
 
 *   [ ] **2.4. 实现假设性文档嵌入 (HyDE - Hypothetical Document Embeddings):**
     *   **学习思想:** 先不直接用问题去检索，而是让LLM根据问题，先“凭空想象”一篇最能回答该问题的“理想文档”。然后，用这篇想象出的文档的向量，去数据库中寻找最相似的真实文档。
