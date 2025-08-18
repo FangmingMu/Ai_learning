@@ -3,11 +3,11 @@ import json
 from langchain_openai import ChatOpenAI
 import os
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import LineListOutputParser #把LLM生成的、以换行符分隔的字符串，直接转换成一个字符串列表
+from langchain_core.output_parsers import LineListOutputParser, StrOutputParser  # 把LLM生成的、以换行符分隔的字符串，直接转换成一个字符串列表
 from langchain_chroma import Chroma
 from langchain_community.embeddings import DashScopeEmbeddings
 
-
+DBPATH = '../R1_Evaluation_Framework/chromadb'
 def create_query(original_question:str):
     llm = ChatOpenAI(
         model_name = "qwen-plus-2025-04-28",
@@ -52,17 +52,39 @@ def get_expanded_retrieved_contexts(retriever, all_queries):
         # 字典推导式    key 唯一，所以如果多个文档的内容相同，只会保留最后一个
         unique_docs = {doc.page_content: doc for doc in all_retrieved_docs}.values()
 
-        return list(unique_docs)
-
-def create_related_josnl(question_list, retriever):
-    with open(question_list, 'r', encoding='utf-8') as f:
-        for line in f:
-            item = json.loads()
-            question = item['question']
-            relate_question = create_query(question)
-            get_expanded_retrieved_contexts()
+    return list(unique_docs)
 
 
+def generate_final_answer(llm, retrieved_docs:list, question:str)->str:
+    # 列表解析（List Comprehension）  在列表的每两个元素之间插入指定的分隔符 \n\n---\n\n
+    context_string = "\n\n---\n\n".join([doc.page_content for doc in retrieved_docs])
+
+    answer_generation_prompt_template = """
+        你是一个严谨的问答机器人。
+        你的任务是【只使用】下面提供的【上下文】来回答【原始问题】。
+        确保答案简洁、准确，并且完全基于所提供的资料。
+        如果上下文信息不足以回答，就明确指出“根据提供的资料无法回答”。
+
+        上下文:
+        {context}
+
+        原始问题:
+        {question}
+
+        答案:
+        """
+    answer_prompt = ChatPromptTemplate.from_template(answer_generation_prompt_template)
+    chain = answer_prompt | llm | StrOutputParser()
+    generated_answer = chain.invoke({
+        "context": context_string,
+        "question": question
+    })
+
+    return generated_answer
+
+
+def create_related_josnl(question_list, generated_answer:str, retrieved_docs:list):
+    all_results=[]
     llm = ChatOpenAI(
         model_name="qwen-plus-2025-04-28",
         api_key=os.getenv("DASHSCOPE_API_KEY"),
@@ -70,8 +92,42 @@ def create_related_josnl(question_list, retriever):
         extra_body={"enable_thinking": False},
     )
 
+    embedding = DashScopeEmbeddings(
+        model="text-embedding-v1",
+        dashscope_api_key=os.getenv("DASHSCOPE_API_KEY")
+    )
+    vector_db = Chroma(
+        persist_directory=DBPATH,
+        embedding_function=embedding,
+    )
+
+    retrieval = vector_db.as_retriever()
+
+    with open(question_list, 'r', encoding='utf-8') as f:
+        for line in f:
+            item = json.loads(line)
+            question = item['question']
+            all_queries = create_query(item)
+            get_expanded_retrieved_contexts(retrieval, all_queries)
+
+            answer_dict = {"question": question,
+                           "ground_truth_contexts": item['ground_truth_contexts'],
+                           "ground_truth_answer": item['ground_truth_answer'],
+                           "retrieved_contexts": [doc.page_content for doc in retrieved_docs],
+                           "generated_answer": generated_answer}
+
+            json_string = json.dumps(answer_dict, ensure_ascii=False)  # 字典转json  ensure_ascii=False 确保中文正确写入，不转换成编码
+
+            all_results.append(json_string)
+
+    with open(run_results, 'w', encoding='utf-8') as f:
+        for result_item in all_results:
+            f.write(result_item + '\n')
 
 
+
+
+if __name__ == "__main__":
 
 
 
