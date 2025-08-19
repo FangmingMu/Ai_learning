@@ -16,6 +16,7 @@ from langchain.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
 
+<<<<<<< HEAD
 JUDGE_LLM_MODEL = "qwen-turbo"
 EMBEDDING_MODEL = "text-embedding-v1"
 INPUT_FILE = "baseline_run_results.jsonl"
@@ -81,12 +82,56 @@ class Test:
         path = file_path or self.file_path
         dataset = self.load_answer(path)
 
+=======
+class Test:
+    def __init__(self, file_path: str = None):
+        self.file_path = file_path
+
+        # 初始化 LLM 和 Embeddings
+        self.llm = ChatOpenAI(
+            model_name="qwen-turbo",
+            api_key=os.getenv("DASHSCOPE_API_KEY"),
+            base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+        )
+        self.llm_for_ragas = LangchainLLMWrapper(self.llm)
+
+        self.ragas_embeddings = DashScopeEmbeddings(
+            model="text-embedding-v1",
+            dashscope_api_key=os.getenv("DASHSCOPE_API_KEY")
+        )
+
+        # 设置 LLM 给各个指标
+        faithfulness.llm = self.llm_for_ragas
+        answer_relevancy.llm = self.llm_for_ragas
+        context_precision.llm = self.llm_for_ragas
+
+    def load_answer(self, file_path) -> Dataset:
+        """从 JSONL 文件加载评估数据并转成 Dataset"""
+        path = file_path or self.file_path
+        with open(path, 'r', encoding='utf-8') as f:
+            data_list = [json.loads(line) for line in f]
+
+        data_dict = {
+            'question': [item['question'] for item in data_list],
+            'answer': [item['generated_answer'] for item in data_list],
+            'contexts': [item['retrieved_contexts'] for item in data_list],
+            'ground_truth': [item['ground_truth_answer'] for item in data_list]
+        }
+
+        return Dataset.from_dict(data_dict)
+
+    def ragas_evaluate(self, file_path=None):
+        """对指定 JSONL 文件执行 RAGAs 评估，返回结果字典"""
+        path = file_path or self.file_path
+        dataset = self.load_answer(path)
+>>>>>>> 40eb69c90261409cb4718568fe24c06925c9ddf2
         result = evaluate(
             dataset=dataset,
             metrics=[faithfulness, answer_relevancy, context_recall, context_precision],
             llm=self.llm_for_ragas,
             embeddings=self.ragas_embeddings
         )
+<<<<<<< HEAD
 
         return result
 
@@ -146,3 +191,6 @@ class Test:
 
         json_string = json.dumps(answer_dict, ensure_ascii=False)  # 字典转json  ensure_ascii=False 确保中文正确写入，不转换成编码
         return json_string
+=======
+        return result
+>>>>>>> 40eb69c90261409cb4718568fe24c06925c9ddf2

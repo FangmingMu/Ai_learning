@@ -1,14 +1,20 @@
 import json
+from fileinput import filename
 
 from langchain_openai import ChatOpenAI
 import os
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import LineListOutputParser, StrOutputParser  # 把LLM生成的、以换行符分隔的字符串，直接转换成一个字符串列表
+from langchain.retrievers.multi_query import LineListOutputParser # 把LLM生成的、以换行符分隔的字符串，直接转换成一个字符串列表
+from langchain_core.output_parsers import StrOutputParser
 from langchain_chroma import Chroma
 from langchain_community.embeddings import DashScopeEmbeddings
+from R1_Evaluation_Framework.ragas_eval import Test
+
+
 
 DBPATH = '../R1_Evaluation_Framework/chromadb'
 def create_query(original_question:str):
+    print("正在创建查询集")
     llm = ChatOpenAI(
         model_name = "qwen-plus-2025-04-28",
         api_key=os.getenv("DASHSCOPE_API_KEY"),
@@ -42,6 +48,7 @@ def create_query(original_question:str):
 
 
 def get_expanded_retrieved_contexts(retriever, all_queries):
+    print("正在检索上下文")
     all_retrieved_docs = []
     for query in all_queries:
         # 先检索（不回答）  .get_relevant_documents()   专门用于 Retriever检索器  返回相关文档
@@ -56,6 +63,7 @@ def get_expanded_retrieved_contexts(retriever, all_queries):
 
 
 def generate_final_answer(llm, retrieved_docs:list, question:str)->str:
+    print("生成答案中")
     # 列表解析（List Comprehension）  在列表的每两个元素之间插入指定的分隔符 \n\n---\n\n
     context_string = "\n\n---\n\n".join([doc.page_content for doc in retrieved_docs])
 
@@ -83,7 +91,7 @@ def generate_final_answer(llm, retrieved_docs:list, question:str)->str:
     return generated_answer
 
 
-def create_related_josnl(question_list, generated_answer:str, retrieved_docs:list):
+def create_related_josnl(question_list):
     all_results=[]
     llm = ChatOpenAI(
         model_name="qwen-plus-2025-04-28",
@@ -107,19 +115,21 @@ def create_related_josnl(question_list, generated_answer:str, retrieved_docs:lis
         for line in f:
             item = json.loads(line)
             question = item['question']
-            all_queries = create_query(item)
-            get_expanded_retrieved_contexts(retrieval, all_queries)
+            all_queries = create_query(question)
+            retrieved_docs = get_expanded_retrieved_contexts(retrieval, all_queries)
+            answer = generate_final_answer(llm, retrieved_docs, question)
 
             answer_dict = {"question": question,
                            "ground_truth_contexts": item['ground_truth_contexts'],
                            "ground_truth_answer": item['ground_truth_answer'],
                            "retrieved_contexts": [doc.page_content for doc in retrieved_docs],
-                           "generated_answer": generated_answer}
+                           "generated_answer": answer}
 
             json_string = json.dumps(answer_dict, ensure_ascii=False)  # 字典转json  ensure_ascii=False 确保中文正确写入，不转换成编码
 
             all_results.append(json_string)
-
+    print("正在写入")
+    run_results = 'run_results,jsonl'
     with open(run_results, 'w', encoding='utf-8') as f:
         for result_item in all_results:
             f.write(result_item + '\n')
@@ -128,6 +138,17 @@ def create_related_josnl(question_list, generated_answer:str, retrieved_docs:lis
 
 
 if __name__ == "__main__":
+    current_path = os.path.dirname(__file__)  # 当前脚本所在目录
+    # parent_path = os.path.dirname(current_path)  # 上一级目录
+    #
+    # question_dir = 'golden_dataset.jsonl'
+    # question_list = os.path.join(parent_path, 'R1_Evaluation_Framework', question_dir)
+    # create_related_josnl(question_list)
+
+    run_results = os.path.join(current_path, 'run_results.jsonl')
+    test = Test(run_results)
+    result = test.ragas_evaluate()
+    print(result)
 
 
 
