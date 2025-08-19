@@ -12,15 +12,27 @@ from R1_Evaluation_Framework.ragas_eval import Test
 
 
 
-DBPATH = '../R1_Evaluation_Framework/chromadb'
-def create_query(original_question:str):
-    print("正在创建查询集")
-    llm = ChatOpenAI(
+DBPATH = '../R1_Evaluation_Framework/chroma_db'
+llm = ChatOpenAI(
         model_name = "qwen-plus-2025-04-28",
         api_key=os.getenv("DASHSCOPE_API_KEY"),
         base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
         extra_body={"enable_thinking": False},
     )
+
+embedding = DashScopeEmbeddings(
+        model="text-embedding-v1",
+        dashscope_api_key=os.getenv("DASHSCOPE_API_KEY")
+    )
+vector_db = Chroma(
+    persist_directory=DBPATH,
+    embedding_function=embedding,
+)
+
+
+def create_query(original_question:str):
+    print("正在创建查询集")
+
 
     expansion_prompt_template = """
     你是一个精通信息检索的AI助手。
@@ -54,11 +66,9 @@ def get_expanded_retrieved_contexts(retriever, all_queries):
         # 先检索（不回答）  .get_relevant_documents()   专门用于 Retriever检索器  返回相关文档
         # 问+答，一步到位，.invoke()  用于 Runnable / Chain / Agent   返回链的结果  答案 相关文档
         retrieved_docs=retriever.get_relevant_documents(query)    # 和retriever.invoke(query) 一样
-        all_retrieved_docs.extend(retrieved_docs)  # 把检索的文档一个个放入进去，组成大的相关列表  用extend  每个是Document对象
-
         # 字典推导式    key 唯一，所以如果多个文档的内容相同，只会保留最后一个
         unique_docs = {doc.page_content: doc for doc in all_retrieved_docs}.values()
-
+    all_retrieved_docs.extend(retrieved_docs)  # 把检索的文档一个个放入进去，组成大的相关列表  用extend  每个是Document对象
     return list(unique_docs)
 
 
@@ -93,21 +103,6 @@ def generate_final_answer(llm, retrieved_docs:list, question:str)->str:
 
 def create_related_josnl(question_list):
     all_results=[]
-    llm = ChatOpenAI(
-        model_name="qwen-plus-2025-04-28",
-        api_key=os.getenv("DASHSCOPE_API_KEY"),
-        base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
-        extra_body={"enable_thinking": False},
-    )
-
-    embedding = DashScopeEmbeddings(
-        model="text-embedding-v1",
-        dashscope_api_key=os.getenv("DASHSCOPE_API_KEY")
-    )
-    vector_db = Chroma(
-        persist_directory=DBPATH,
-        embedding_function=embedding,
-    )
 
     retrieval = vector_db.as_retriever()
 

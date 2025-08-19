@@ -7,6 +7,7 @@ from langchain.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_chroma import Chroma
 from langchain.chains import HypotheticalDocumentEmbedder
+from R1_Evaluation_Framework.ragas_eval import Test
 
 
 
@@ -17,14 +18,10 @@ llm = ChatOpenAI(
         extra_body={"enable_thinking": False},
 )
 
-
-
-
 embedding = DashScopeEmbeddings(
             model = "text-embedding-v1",
             dashscope_api_key=os.getenv("DASHSCOPE_API_KEY")
            )
-
 
 hyde_prompt_template = """
 请根据以下问题，撰写一篇简洁、清晰、事实丰富的段落来回答它。
@@ -49,14 +46,11 @@ question_list = os.path.join(parent_path, 'R1_Evaluation_Framework', question_li
 
 # 通过提问 把提问给llm让他生成答案   请你假装已经找到了完美的答案，然后写出一篇最能回答这个问题的、详尽的、假设性的文档
 # 生成假设性文档 向量化  检索
-def manual_dyde_retrieval(question:str, vector_db):
-    print("生成假设性文档")
+def manual_dyde_retrieval(question:str, vector_db=vector_db):
     hyde_doxs = hyde_chain.invoke({"question":question})
 
-    print("向量化")
     hyde_embedding = embedding.embed_query(hyde_doxs)   # embed_query()  对单条文本进行编码，返回该文本的嵌入向量。
 
-    print("检索中")
     retrieved_docs = vector_db.similarity_search_by_vector(
         embedding=hyde_embedding,
         k=3
@@ -64,20 +58,6 @@ def manual_dyde_retrieval(question:str, vector_db):
 
     return retrieved_docs
 
-
-def own_hyde():
-    with open(question_list, 'r', encoding='utf-8') as f:
-        for line in f:
-            item = json.loads(line)
-            question = item["question"]
-
-            result = manual_dyde_retrieval(question, vector_db)
-
-            print("\n--- 手写HyDE检索到的最终文档 ---")
-            for i, doc in enumerate(result):
-                print(f"  文档 {i + 1}: '{doc.page_content}'")
-            break
-    return
 
 
 def langchain_hyde(question: str=None, base_retriever=None, llm=llm, embeddings=None):
@@ -99,22 +79,32 @@ def langchain_hyde(question: str=None, base_retriever=None, llm=llm, embeddings=
     retrieved_docs = base_retriever.vectorstore.similarity_search_by_vector(
         embedding=hypothetical_embedding
     )
-    print("\n--- 内置HyDE检索到的最终文档 ---")
-    for i, doc in enumerate(retrieved_docs):
-        print(f"  文档 {i + 1}: '{doc.page_content}'")
+    # print("\n--- 内置HyDE检索到的最终文档 ---")
+    # for i, doc in enumerate(retrieved_docs):
+    #     print(f"  文档 {i + 1}: '{doc.page_content}'")
 
     return retrieved_docs
 
 
 if __name__ == "__main__":
+    result_dir = 'hyde_redults.jsonl'
+    test = Test(result_dir)
+    all_results=[]
+    print("读取问题文档")
     with open(question_list, 'r', encoding='utf-8') as f:
-        for line in f:
+        for i, line in enumerate(f, start=1):
             item = json.loads(line)
             question = item["question"]
-            retrieval_docs = langchain_hyde(question=question)
+            print(f"正在检索第{i}个问题：{question}")
+            # retrieval_docs = langchain_hyde(question=question)
+            retrieval_docs = manual_dyde_retrieval(question)
+            question_dict = test.generate_answer(question, retrieval_docs)
+            all_results.append(question_dict)
+    print("正在写入")
+    with open(result_dir, 'w', encoding='utf-8')as f:
+        for result_item in all_results:
+            f.write(result_item + '\n')
+    print("开始评估")
+    result = test.ragas_evaluate(result_dir)
+    print(result)
 
-            answer_dict = {"question": question,
-                           "ground_truth_contexts": item['ground_truth_contexts'],
-                           "ground_truth_answer": item['ground_truth_answer'],
-                           "retrieved_contexts": retrieval_docs,
-                           "generated_answer": generated_answer}
