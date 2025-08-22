@@ -7,6 +7,8 @@ __pycache__/
 # 测试缓存
 .pytest_cache/
 
+R1_Evaluation_Framework/chroma_db/
+
 # 环境变量文件
 .env
 
