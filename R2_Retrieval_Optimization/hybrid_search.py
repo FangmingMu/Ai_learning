@@ -7,13 +7,16 @@ from rank_bm25 import BM25Okapi
 from langchain_chroma import Chroma
 from langchain_community.embeddings import DashScopeEmbeddings
 from R1_Evaluation_Framework.ragas_eval import Test
+from local_model import get_embedding_model,get_llm
+llm = get_llm()
+embedding = get_embedding_model()
 
 current_path = os.path.dirname(__file__)
 parent_path = os.path.dirname(current_path)  # 返回上一级目录
-embedding = DashScopeEmbeddings(
-    model="text-embedding-v1",
-    dashscope_api_key=os.getenv("DASHSCOPE_API_KEY")
-)
+# embedding = DashScopeEmbeddings(
+#     model="text-embedding-v1",
+#     dashscope_api_key=os.getenv("DASHSCOPE_API_KEY")
+# )
 db_name = 'chroma_db'
 db_path = os.path.join(parent_path, 'R1_Evaluation_Framework', db_name)  # 错误  现在不是向量数据库
 vector_db = Chroma(persist_directory=db_path, embedding_function=embedding)
@@ -48,7 +51,8 @@ class Hybrid_search():
 
     def embeddings_retrieved(self,query=None, k=5):
         # 向量检索器
-        embeddings = DashScopeEmbeddings(model="text-embedding-v1", dashscope_api_key=os.getenv("DASHSCOPE_API_KEY"))
+        embeddings = embedding
+        # embeddings = DashScopeEmbeddings(model="text-embedding-v1", dashscope_api_key=os.getenv("DASHSCOPE_API_KEY"))
         vector_store = Chroma.from_documents(self.split_docs, embeddings)
         retriever_vector = vector_store.as_retriever(search_kwargs={"k": k}) # 让它返回Top 5
 
@@ -91,7 +95,7 @@ class Hybrid_search():
 
 if __name__ == "__main__":
     all_results=[]
-    resultdir = 'Hybrid'
+    resultdir = 'Hybrid.jsonl'
     test = Test(resultdir)
     hybrid_search = Hybrid_search()
     with open(question_list, 'r', encoding='utf-8') as f:

@@ -1,6 +1,5 @@
 import json
 from fileinput import filename
-
 from langchain_openai import ChatOpenAI
 import os
 from langchain_core.prompts import ChatPromptTemplate
@@ -9,26 +8,32 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_chroma import Chroma
 from langchain_community.embeddings import DashScopeEmbeddings
 from R1_Evaluation_Framework.ragas_eval import Test
+from local_model import get_embedding_model,get_llm
+
+llm = get_llm()
+embedding = get_embedding_model()
+
 
 
 
 DBPATH = '../R1_Evaluation_Framework/chroma_db'
-llm = ChatOpenAI(
-        model_name = "qwen-plus-2025-04-28",
-        api_key=os.getenv("DASHSCOPE_API_KEY"),
-        base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
-        extra_body={"enable_thinking": False},
-    )
-
-embedding = DashScopeEmbeddings(
-        model="text-embedding-v1",
-        dashscope_api_key=os.getenv("DASHSCOPE_API_KEY")
-    )
 vector_db = Chroma(
-    persist_directory=DBPATH,
-    embedding_function=embedding,
-)
+            persist_directory=DBPATH,
+            embedding_function=embedding,
+        )
+# 定义模型路径
 
+# llm = ChatOpenAI(
+#         model_name = "qwen-plus-2025-04-28",
+#         api_key=os.getenv("DASHSCOPE_API_KEY"),
+#         base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+#         extra_body={"enable_thinking": False},
+#     )
+#
+# embedding = DashScopeEmbeddings(
+#         model="text-embedding-v1",
+#         dashscope_api_key=os.getenv("DASHSCOPE_API_KEY")
+#     )
 
 def create_query(original_question:str):
     print("正在创建查询集")
@@ -124,7 +129,7 @@ def create_related_josnl(question_list):
 
             all_results.append(json_string)
     print("正在写入")
-    run_results = 'run_results,jsonl'
+    run_results = 'run_results.jsonl'
     with open(run_results, 'w', encoding='utf-8') as f:
         for result_item in all_results:
             f.write(result_item + '\n')
@@ -134,11 +139,11 @@ def create_related_josnl(question_list):
 
 if __name__ == "__main__":
     current_path = os.path.dirname(__file__)  # 当前脚本所在目录
-    # parent_path = os.path.dirname(current_path)  # 上一级目录
-    #
-    # question_dir = 'golden_dataset.jsonl'
-    # question_list = os.path.join(parent_path, 'R1_Evaluation_Framework', question_dir)
-    # create_related_josnl(question_list)
+    parent_path = os.path.dirname(current_path)  # 上一级目录
+
+    question_dir = 'golden_dataset.jsonl'
+    question_list = os.path.join(parent_path, 'R1_Evaluation_Framework', question_dir)
+    create_related_josnl(question_list)
 
     run_results = os.path.join(current_path, 'run_results.jsonl')
     test = Test(run_results)

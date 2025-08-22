@@ -13,21 +13,19 @@ from ragas.metrics import (
 )
 from ragas.llms import LangchainLLMWrapper
 from langchain_openai import ChatOpenAI
+from local_model import get_llm, get_embedding_model
 
-# RAGAs在评估时，需要一个强大的LLM来做“裁判”（LLM-as-a-Judge）
-llm = ChatOpenAI(
-        model_name="qwen-turbo",
-        api_key=os.getenv("DASHSCOPE_API_KEY"),
-        base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
-    )
+
+
+# 初始化
+embedding = get_embedding_model()
+llm = get_llm()
+
 llm_for_ragas = LangchainLLMWrapper(llm)    # 包装成RAGAs认识的格式。
 
 # 定义评估用的Embedding模型 (这是关键的新增部分！)
 # 我们必须告诉RAGAs，在需要计算嵌入时，也要用我们自己的模型
-ragas_embeddings = DashScopeEmbeddings(
-    model="text-embedding-v1",
-    dashscope_api_key=os.getenv("DASHSCOPE_API_KEY")
-)
+ragas_embeddings = embedding
 
 # 将我们配置好的裁判模型，设置为RAGAs所有评估指标的默认模型
 faithfulness.llm = llm_for_ragas

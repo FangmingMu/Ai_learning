@@ -2,5 +2,7 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/Qwen2.5-0.5B-Instruct" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/Qwen3-Embedding-0.6B" vcs="Git" />
   </component>
 </project>

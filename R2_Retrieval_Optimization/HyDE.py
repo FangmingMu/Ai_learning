@@ -8,20 +8,22 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_chroma import Chroma
 from langchain.chains import HypotheticalDocumentEmbedder
 from R1_Evaluation_Framework.ragas_eval import Test
+from local_model import get_embedding_model,get_llm
 
+llm = get_llm()
+embedding = get_embedding_model()
 
-
-llm = ChatOpenAI(
-        model_name="qwen-plus-2025-04-28",
-        api_key=os.getenv("DASHSCOPE_API_KEY"),
-        base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
-        extra_body={"enable_thinking": False},
-)
-
-embedding = DashScopeEmbeddings(
-            model = "text-embedding-v1",
-            dashscope_api_key=os.getenv("DASHSCOPE_API_KEY")
-           )
+# llm = ChatOpenAI(
+#         model_name="qwen-plus-2025-04-28",
+#         api_key=os.getenv("DASHSCOPE_API_KEY"),
+#         base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+#         extra_body={"enable_thinking": False},
+# )
+#
+# embedding = DashScopeEmbeddings(
+#             model = "text-embedding-v1",
+#             dashscope_api_key=os.getenv("DASHSCOPE_API_KEY")
+#            )
 
 hyde_prompt_template = """
 请根据以下问题，撰写一篇简洁、清晰、事实丰富的段落来回答它。

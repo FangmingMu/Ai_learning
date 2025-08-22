@@ -1,0 +1,18 @@
+# Python相关
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 测试缓存
+.pytest_cache/
+
+# 环境变量文件
+.env
+
+# 模型或大文件
+Qwen2.5-0.5B-Instruct/
+Qwen3-Embedding-0.6B/
+
+# 项目生成的中间文件夹
+RAG/
