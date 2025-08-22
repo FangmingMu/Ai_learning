@@ -55,7 +55,7 @@ def manual_dyde_retrieval(question:str, vector_db=vector_db):
 
     retrieved_docs = vector_db.similarity_search_by_vector(
         embedding=hyde_embedding,
-        k=3
+        k=10
     )    # 是ChromaDB等库支持的底层方法
 
     return retrieved_docs
@@ -71,7 +71,7 @@ def langchain_hyde(question: str=None, base_retriever=None, llm=llm, embeddings=
         prompt_key="web_search",  # LangChain内置不同场景的prompt, 'web_search'模拟 Web 搜索类的具体回答风格
         #prompt_key=hyde_prompt_template    # 也可以自定义
     )
-    base_retriever = base_retriever or vector_db.as_retriever()   # 兜底赋值  如果传入  用传入的  没有就用后面的
+    base_retriever = base_retriever or vector_db.as_retriever(search_type="similarity", search_kwargs={"k":10})   # 兜底赋值  如果传入  用传入的  没有就用后面的
 
     # 使用HyDE嵌入器来替换常规的嵌入器进行检索  这里我们直接用向量进行搜索，更接近底层
     hypothetical_embedding = hyde_embedder.embed_query(question)

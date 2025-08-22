@@ -8,6 +8,43 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 # 确保.env文件被加载
 load_dotenv()
 
+# --- 3. 为 Hugging Face BGE 模型创建加载函数 ---
+from sentence_transformers import SentenceTransformer
+
+
+from sentence_transformers import SentenceTransformer
+
+class HuggingFaceBGEEmbedding:
+    """封装 BGE 模型以兼容 Chroma"""
+    def __init__(self, model_name="BAAI/bge-small-en"):
+        self.model = SentenceTransformer(model_name)
+
+    def __call__(self, texts):
+        """方便直接调用"""
+        return self.model.encode(texts, convert_to_tensor=False)
+
+    def embed_documents(self, texts):
+        """Chroma 需要的方法"""
+        return self.model.encode(texts, convert_to_tensor=False)
+
+    def embed_query(self, text):
+        """Chroma 需要的方法"""
+        # 单条文本也返回向量
+        return self.model.encode([text], convert_to_tensor=False)[0]
+
+
+def get_bge_embedding_model(model_name="BAAI/bge-small-en") -> HuggingFaceBGEEmbedding:
+    """返回 BGE 嵌入模型包装对象"""
+    return HuggingFaceBGEEmbedding(model_name)
+
+
+
+def get_bge_embedding_model(model_name="BAAI/bge-large-en") -> HuggingFaceBGEEmbedding:
+    """
+    返回 BGE 嵌入模型包装对象
+    """
+    return HuggingFaceBGEEmbedding(model_name)
+
 
 # --- 1. 为你的 Embedding 模型创建加载函数 ---
 def get_embedding_model() -> OpenAIEmbeddings:

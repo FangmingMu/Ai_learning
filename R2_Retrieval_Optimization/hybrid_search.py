@@ -7,7 +7,8 @@ from rank_bm25 import BM25Okapi
 from langchain_chroma import Chroma
 from langchain_community.embeddings import DashScopeEmbeddings
 from R1_Evaluation_Framework.ragas_eval import Test
-from local_model import get_embedding_model,get_llm
+from local_model import get_embedding_model, get_llm
+
 llm = get_llm()
 embedding = get_embedding_model()
 
@@ -24,22 +25,20 @@ vector_db = Chroma(persist_directory=db_path, embedding_function=embedding)
 question_list_name = 'golden_dataset.jsonl'
 question_list = os.path.join(parent_path, 'R1_Evaluation_Framework', question_list_name)
 
-class Hybrid_search():
-    def __init__(self):
-        current_path = os.path.dirname(__file__)
-        PDF = os.path.join(os.path.dirname(current_path), 'R1_Evaluation_Framework/PDF/ARES RAG Evaluation.pdf')
-        loader = PyPDFLoader(PDF)
-        self.documents = loader.load()
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
-        self.split_docs = text_splitter.split_documents(self.documents)
 
+class Hybrid_search():
+    # 现在改为接收外部已经准备好的 "split_docs" 和 "retriever_vector" 作为参数。
+    # 这样，重量级的操作（加载、切分、初始化向量检索器）就只需要在程序启动时执行一次。
+    def __init__(self, split_docs, retriever_vector):
+        self.split_docs = split_docs
+        self.retriever_vector = retriever_vector  # 将高效的、持久化的向量检索器保存起来
+
+        # BM25的初始化仍然放在这里，因为它依赖于split_docs，并且计算很快
         corpus_tokenized = [doc.page_content.split() for doc in self.split_docs]
         self.bm25 = BM25Okapi(corpus_tokenized)
 
-
-    def bm25_retrieved(self,query=None, k=5):
+    def bm25_retrieved(self, query=None, k=10):
         # bm25检索器
-
         # BM25返回的是原始文本块，我们需要找到对应的Document对象     range(len(split_docs))  生成文本块长度的序列 占位  就返回索引
         # 传给 BM25 一个“占位列表”，让它返回索引而不是原始文本。
         tokenized_query = query.split()
@@ -48,15 +47,22 @@ class Hybrid_search():
 
         return bm25_retrieved_docs
 
-
-    def embeddings_retrieved(self,query=None, k=5):
+    ### 修改点 2: 修正 embeddings_retrieved 函数 ###
+    # 这是之前代码中最核心的错误所在
+    def embeddings_retrieved(self, query=None):
         # 向量检索器
-        embeddings = embedding
-        # embeddings = DashScopeEmbeddings(model="text-embedding-v1", dashscope_api_key=os.getenv("DASHSCOPE_API_KEY"))
-        vector_store = Chroma.from_documents(self.split_docs, embeddings)
-        retriever_vector = vector_store.as_retriever(search_kwargs={"k": k}) # 让它返回Top 5
+        # embeddings = embedding # 您的注释
+        # embeddings = DashScopeEmbeddings(model="text-embedding-v1", dashscope_api_key=os.getenv("DASHSCOPE_API_KEY")) # 您的注释
 
-        vector_retrieved_docs = retriever_vector.invoke(query)
+        # ---------------------- 以下是您原来的错误逻辑，我们将其注释掉 ----------------------
+        # vector_store = Chroma.from_documents(self.split_docs, embeddings)
+        # retriever_vector = vector_store.as_retriever(search_type="similarity", search_kwargs={"k":k}) # 让它返回Topk
+        # ---------------------------------------------------------------------------------
+        # 上面两行代码的错误在于：它为每一个问题都重新计算所有文档的向量，并在内存中创建一个全新的临时数据库。
+        # 这是导致程序极慢且分数很低的主要原因。
+
+        # 正确的逻辑：直接使用我们在 __init__ 中保存好的、基于持久化存储的高效检索器。
+        vector_retrieved_docs = self.retriever_vector.invoke(query)
 
         return vector_retrieved_docs
 
@@ -71,17 +77,17 @@ class Hybrid_search():
            """
         fused_scores = {}  # 存储分数      key: doc.page_content (用于唯一标识文档)    value: RRF score
 
-        for docs_list in retrieved_results:   # 遍历的是  不同检索器的检索结果
-            for rank, doc in enumerate(docs_list, start=1):   # 遍历检索器内的结果
+        for docs_list in retrieved_results:  # 遍历的是  不同检索器的检索结果
+            for rank, doc in enumerate(docs_list, start=1):  # 遍历检索器内的结果
                 if doc.page_content not in fused_scores:
                     fused_scores[doc.page_content] = 0
 
                 fused_scores[doc.page_content] += 1 / (k + rank)
 
         reranked_results = sorted(
-            fused_scores.items(),    # .items()会返回一个可迭代对象，每个元素是 (key, value) 的元组   排序的单位
-            key=lambda item: item[1],    # 表示取 (doc, score) 的 score 来排序。  # lambda匿名函数 lambda 参数: 表达式  返回表达式的值
-            reverse=True    # 降序排序
+            fused_scores.items(),  # .items()会返回一个可迭代对象，每个元素是 (key, value) 的元组   排序的单位
+            key=lambda item: item[1],  # 表示取 (doc, score) 的 score 来排序。  # lambda匿名函数 lambda 参数: 表达式  返回表达式的值
+            reverse=True  # 降序排序
         )
 
         # 重新构建文档对象列表   需要一个方法从page_content找回原始的Document对象    先创建一个查找表
@@ -94,16 +100,35 @@ class Hybrid_search():
 
 
 if __name__ == "__main__":
-    all_results=[]
+    # 步骤 1: 一次性加载和切分所有文档 (原本在 __init__ 中)
+    print("--- 步骤 1: 正在加载和切分文档 (仅执行一次) ---")
+    pdf_path = os.path.join(parent_path, 'R1_Evaluation_Framework/PDF/ARES RAG Evaluation.pdf')
+    loader = PyPDFLoader(pdf_path)
+    documents = loader.load()
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=200)
+    split_docs = text_splitter.split_documents(documents)
+
+    # 步骤 2: 基于持久化数据库，一次性创建高效的向量检索器
+    print("--- 步骤 2: 正在初始化持久化向量检索器 (仅执行一次) ---")
+    vector_retriever = vector_db.as_retriever(search_kwargs={"k": 10})
+
+    # 步骤 3: 实例化 Hybrid_search，并传入准备好的材料
+    print("--- 步骤 3: 正在实例化混合搜索模块 ---")
+    hybrid_search = Hybrid_search(split_docs=split_docs, retriever_vector=vector_retriever)
+
+    # 步骤 4: 开始循环处理问题，此时所有准备工作都已完成
+    print("--- 步骤 4: 开始循环处理所有问题 ---")
+    all_results = []
     resultdir = 'Hybrid.jsonl'
     test = Test(resultdir)
-    hybrid_search = Hybrid_search()
     with open(question_list, 'r', encoding='utf-8') as f:
         for i, line in enumerate(f, start=1):
             item = json.loads(line)
             question = item["question"]
             print(f"正在检索第{i}个问题：{question}")
-            bm25_retrieved_docs = hybrid_search.bm25_retrieved(question)
+
+            # 调用现在高效且正确的检索方法
+            bm25_retrieved_docs = hybrid_search.bm25_retrieved(question, k=10)
             vector_retrieved_docs = hybrid_search.embeddings_retrieved(question)
 
             # 将两个检索结果放入一个列表中
@@ -120,7 +145,6 @@ if __name__ == "__main__":
 
             question_dict = test.generate_answer(question, fused_docs)
             all_results.append(question_dict)
-
 
     print("正在写入")
     with open(resultdir, 'w', encoding='utf-8') as f:

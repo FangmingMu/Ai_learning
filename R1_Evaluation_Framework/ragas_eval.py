@@ -14,10 +14,10 @@ from ragas.llms import LangchainLLMWrapper
 from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
+from local_model import get_embedding_model,get_bge_embedding_model,get_llm
 
-
-JUDGE_LLM_MODEL = "qwen-turbo"
-EMBEDDING_MODEL = "text-embedding-v1"
+JUDGE_LLM_MODEL = get_llm()
+EMBEDDING_MODEL = get_embedding_model()
 INPUT_FILE = "baseline_run_results.jsonl"
 
 
@@ -31,20 +31,13 @@ class Test:
 
         self.dataset_map = self._golden_dataset_map(self.question_list)
         # 初始化 LLM
-        self.llm = ChatOpenAI(
-            model_name=JUDGE_LLM_MODEL,
-            api_key=os.getenv("DASHSCOPE_API_KEY"),
-            base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
-        )
+        self.llm = get_llm()
 
         # 包装 LLM 以用于 RAGAs
         self.llm_for_ragas = LangchainLLMWrapper(self.llm)
 
         # 初始化 Embeddings
-        self.ragas_embeddings = DashScopeEmbeddings(
-            model=EMBEDDING_MODEL,
-            dashscope_api_key=os.getenv("DASHSCOPE_API_KEY")
-        )
+        self.ragas_embeddings = get_embedding_model()
 
         # 设置 LLM 给各个指标
         faithfulness.llm = self.llm_for_ragas

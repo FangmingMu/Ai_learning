@@ -67,14 +67,15 @@ def create_query(original_question:str):
 def get_expanded_retrieved_contexts(retriever, all_queries):
     print("正在检索上下文")
     all_retrieved_docs = []
+    # 步骤 2: 遍历所有查询，并将结果累积
     for query in all_queries:
         # 先检索（不回答）  .get_relevant_documents()   专门用于 Retriever检索器  返回相关文档
         # 问+答，一步到位，.invoke()  用于 Runnable / Chain / Agent   返回链的结果  答案 相关文档
-        retrieved_docs=retriever.get_relevant_documents(query)    # 和retriever.invoke(query) 一样
+        current_retrieved_docs = retriever.get_relevant_documents(query)    # 和retriever.invoke(query) 一样
         # 字典推导式    key 唯一，所以如果多个文档的内容相同，只会保留最后一个
-        unique_docs = {doc.page_content: doc for doc in all_retrieved_docs}.values()
-    all_retrieved_docs.extend(retrieved_docs)  # 把检索的文档一个个放入进去，组成大的相关列表  用extend  每个是Document对象
-    return list(unique_docs)
+        all_retrieved_docs.extend(current_retrieved_docs)
+    unique_docs_map = {doc.page_content: doc for doc in all_retrieved_docs} # 把检索的文档一个个放入进去，组成大的相关列表  用extend  每个是Document对象
+    return list(unique_docs_map.values())
 
 
 def generate_final_answer(llm, retrieved_docs:list, question:str)->str:
@@ -109,7 +110,7 @@ def generate_final_answer(llm, retrieved_docs:list, question:str)->str:
 def create_related_josnl(question_list):
     all_results=[]
 
-    retrieval = vector_db.as_retriever()
+    retrieval = vector_db.as_retriever(search_type="similarity", search_kwargs={"k":10})
 
     with open(question_list, 'r', encoding='utf-8') as f:
         for line in f:

@@ -11,13 +11,15 @@ from dotenv import load_dotenv
 import dashscope
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain.chains import RetrievalQA
-from local_model import get_llm, get_embedding_model
+from local_model import get_llm, get_embedding_model, get_bge_embedding_model
 
 task_instruction = "根据查询找到相关文档"
 load_dotenv()
-embedding = get_embedding_model()
 llm = get_llm()
 
+# 选择 BGE 模型
+# embedding = get_bge_embedding_model("BAAI/bge-large-en")  # small / base / large 都可以
+embedding = get_embedding_model()
 
 
 PDFNAME = "ARES RAG Evaluation.pdf"
@@ -26,7 +28,7 @@ baseline_run_results = "baseline_run_results.jsonl"
 current_path = os.path.dirname(__file__)
 pdf_path = os.path.join(current_path, "PDF", PDFNAME)
 question_path = os.path.join(current_path, question_name)
-DBPATH = 'chroma_db_8B'
+DBPATH = 'chroma_db'
 print(f"数据库的绝对路径是: {DBPATH}")
 
 
@@ -40,8 +42,8 @@ def create_answer_jsonl(pdf_path, DBPATH):
         docs = loader.load()
         print("成功加载文档")
         splitter = RecursiveCharacterTextSplitter(
-            chunk_size=400,
-            chunk_overlap=100,
+            chunk_size=800,
+            chunk_overlap=200,
             length_function=len,
             is_separator_regex=False
         )
@@ -63,7 +65,7 @@ def create_answer_jsonl(pdf_path, DBPATH):
         )
 
     retrieval = vector_db.as_retriever(search_kwargs={
-        "k": 3,
+        "k": 20,
     })
     query = "ARES系统的全称是什么？"
     instructed_query = f"Instruct: {task_instruction}\nQuery: {query}"
