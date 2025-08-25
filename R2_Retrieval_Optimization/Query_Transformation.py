@@ -81,7 +81,7 @@ def get_expanded_retrieved_contexts(retriever, all_queries):
 def generate_final_answer(llm, retrieved_docs:list, question:str)->str:
     print("生成答案中")
     # 列表解析（List Comprehension）  在列表的每两个元素之间插入指定的分隔符 \n\n---\n\n
-    context_string = "\n\n---\n\n".join([doc.page_content for doc in retrieved_docs])
+    context_string = "\n\n---\n\n".join([doc.page_content for doc in retrieved_docs])    # 列表推导式
 
     answer_generation_prompt_template = """
         你是一个严谨的问答机器人。
