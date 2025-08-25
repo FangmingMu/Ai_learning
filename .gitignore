@@ -7,6 +7,15 @@ __pycache__/
 # 测试缓存
 .pytest_cache/
 
+chroma_test_db/
+# 忽略 chroma 数据库缓存
+chroma_db/
+*/chroma_db/
+*/chroma_db_refactored/
+*/t5_full_app/chroma_db/
+*.bin
+
+
 R1_Evaluation_Framework/chroma_db/
 
 # 环境变量文件
