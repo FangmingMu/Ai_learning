@@ -110,7 +110,7 @@ def generate_final_answer(llm, retrieved_docs:list, question:str)->str:
 def create_related_josnl(question_list):
     all_results=[]
 
-    retrieval = vector_db.as_retriever(search_type="similarity", search_kwargs={"k":10})
+    retrieval = vector_db.as_retriever(search_type="similarity", search_kwargs={"k":10}) # 检索十个
 
     with open(question_list, 'r', encoding='utf-8') as f:
         for line in f:
